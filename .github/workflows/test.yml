@@ -1,0 +1,354 @@
+name: Run Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: aiagent123
+          POSTGRES_USER: aiagent
+          POSTGRES_DB: ai_dashboard_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('server/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install Python dependencies
+      run: |
+        cd server
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Wait for services
+      run: |
+        # Wait for PostgreSQL
+        for i in {1..30}; do
+          if pg_isready -h localhost -p 5432 -U aiagent; then
+            break
+          fi
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+        
+        # Wait for Redis
+        for i in {1..30}; do
+          if redis-cli -h localhost -p 6379 ping; then
+            break
+          fi
+          echo "Waiting for Redis..."
+          sleep 2
+        done
+    
+    - name: Run database migrations
+      run: |
+        cd server
+        alembic upgrade head
+      env:
+        DATABASE_URL: postgresql://aiagent:aiagent123@localhost:5432/ai_dashboard_test
+        REDIS_URL: redis://localhost:6379/1
+    
+    - name: Run backend tests
+      run: |
+        cd server
+        pytest --cov=app --cov-report=xml --cov-report=term-missing -v
+      env:
+        DATABASE_URL: postgresql://aiagent:aiagent123@localhost:5432/ai_dashboard_test
+        REDIS_URL: redis://localhost:6379/1
+        TESTING: true
+    
+    - name: Upload backend coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./server/coverage.xml
+        flags: backend
+        name: backend-coverage
+        fail_ci_if_error: false
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+    
+    - name: Install frontend dependencies
+      run: |
+        cd client
+        npm ci
+    
+    - name: Run ESLint
+      run: |
+        cd client
+        npm run lint
+    
+    - name: Run TypeScript check
+      run: |
+        cd client
+        npm run type-check
+    
+    - name: Run frontend unit tests
+      run: |
+        cd client
+        npm run test:coverage
+    
+    - name: Upload frontend coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./client/coverage/coverage-final.json
+        flags: frontend
+        name: frontend-coverage
+        fail_ci_if_error: false
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: aiagent123
+          POSTGRES_USER: aiagent
+          POSTGRES_DB: ai_dashboard_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+    
+    - name: Install Python dependencies
+      run: |
+        cd server
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Install frontend dependencies
+      run: |
+        cd client
+        npm ci
+    
+    - name: Install Playwright browsers
+      run: |
+        cd client
+        npx playwright install --with-deps chromium firefox webkit
+    
+    - name: Wait for services
+      run: |
+        for i in {1..30}; do
+          if pg_isready -h localhost -p 5432 -U aiagent; then
+            break
+          fi
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+        
+        for i in {1..30}; do
+          if redis-cli -h localhost -p 6379 ping; then
+            break
+          fi
+          echo "Waiting for Redis..."
+          sleep 2
+        done
+    
+    - name: Run database migrations
+      run: |
+        cd server
+        alembic upgrade head
+      env:
+        DATABASE_URL: postgresql://aiagent:aiagent123@localhost:5432/ai_dashboard_test
+        REDIS_URL: redis://localhost:6379/1
+    
+    - name: Build frontend
+      run: |
+        cd client
+        npm run build
+    
+    - name: Run E2E tests
+      run: |
+        cd client
+        npm run test:e2e
+      env:
+        DATABASE_URL: postgresql://aiagent:aiagent123@localhost:5432/ai_dashboard_test
+        REDIS_URL: redis://localhost:6379/1
+        CI: true
+    
+    - name: Upload E2E test results
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: playwright-report
+        path: client/playwright-report/
+        retention-days: 7
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+    
+    - name: Install Python dependencies
+      run: |
+        cd server
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Install frontend dependencies
+      run: |
+        cd client
+        npm ci
+    
+    - name: Run Bandit security scan (Python)
+      run: |
+        cd server
+        bandit -r app/ -f json -o bandit-report.json || true
+    
+    - name: Run npm audit (Node.js)
+      run: |
+        cd client
+        npm audit --audit-level=high --json > npm-audit.json || true
+    
+    - name: Upload security scan results
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          server/bandit-report.json
+          client/npm-audit.json
+        retention-days: 7
+
+  quality-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Needed for SonarQube
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+    
+    - name: Install Python dependencies
+      run: |
+        cd server
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Install frontend dependencies
+      run: |
+        cd client
+        npm ci
+    
+    - name: Run MyPy type checking
+      run: |
+        cd server
+        mypy app/ --ignore-missing-imports --json-report mypy-report.json || true
+    
+    - name: Run code quality checks
+      run: |
+        cd server
+        flake8 app/ --output-file=flake8-report.txt || true
+        
+        cd ../client
+        npm run lint -- --output-file eslint-report.json --format json || true
+    
+    - name: Upload quality reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: quality-reports
+        path: |
+          server/mypy-report.json
+          server/flake8-report.txt
+          client/eslint-report.json
+        retention-days: 7

@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  postgres-test:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: ai_dashboard_test
+      POSTGRES_USER: aiagent
+      POSTGRES_PASSWORD: aiagent123
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aiagent -d ai_dashboard_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    tmpfs:
+      - /var/lib/postgresql/data
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off
+
+  redis-test:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    tmpfs:
+      - /data
+
+  backend-test:
+    build:
+      context: ./server
+      target: testing
+    environment:
+      - DATABASE_URL=postgresql://aiagent:aiagent123@postgres-test:5432/ai_dashboard_test
+      - REDIS_URL=redis://redis-test:6379/1
+      - TESTING=true
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    command: |
+      sh -c "
+        alembic upgrade head &&
+        python -m pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing --tb=short
+      "
+    volumes:
+      - ./server/coverage.xml:/app/coverage.xml
+      - ./server/pytest.ini:/app/pytest.ini
+
+  frontend-test:
+    build:
+      context: ./client
+      target: testing
+    environment:
+      - CI=true
+      - VITE_API_URL=http://backend-test:8000
+    volumes:
+      - ./client/coverage:/app/coverage
+      - ./client/test-results:/app/test-results
+
+  e2e-test:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.e2e
+    environment:
+      - CI=true
+      - BASE_URL=http://frontend:80
+      - API_URL=http://backend:8000
+    depends_on:
+      - backend
+      - frontend
+    volumes:
+      - ./client/playwright-report:/app/playwright-report
+      - ./client/test-results:/app/test-results
+    command: |
+      sh -c "
+        echo 'Waiting for services to be ready...' &&
+        npx wait-on http://backend:8000/healthz http://frontend:80 -t 60000 &&
+        npx playwright test
+      "
+
+  backend:
+    build:
+      context: ./server
+      target: development
+    environment:
+      - DATABASE_URL=postgresql://aiagent:aiagent123@postgres-test:5432/ai_dashboard_test
+      - REDIS_URL=redis://redis-test:6379/0
+      - TESTING=true
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./client
+      target: production
+    environment:
+      - VITE_API_URL=http://backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  test_coverage:
+    driver: local
+
+networks:
+  default:
+    driver: bridge

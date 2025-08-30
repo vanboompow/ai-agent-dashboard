@@ -1,0 +1,64 @@
+.radar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.radar-labels {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.radar-label {
+  position: absolute;
+  color: #00ff00;
+  font-size: 14px;
+  font-weight: bold;
+  opacity: 0.6;
+}
+
+.radar-label.top {
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.radar-label.right {
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.radar-label.bottom {
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.radar-label.left {
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+@keyframes pulse {
+  0% {
+    r: 8;
+    opacity: 1;
+  }
+  50% {
+    r: 12;
+    opacity: 0.6;
+  }
+  100% {
+    r: 8;
+    opacity: 1;
+  }
+}
+
+.pulsing {
+  animation: pulse 2s ease-in-out infinite;
+}

@@ -1,0 +1,39 @@
+# Hadolint configuration for Dockerfile linting
+# https://github.com/hadolint/hadolint
+
+# Rules to ignore
+ignored:
+  - DL3008  # Pin versions in apt get install (we use package managers)
+  - DL3009  # Delete the apt-get lists after installing (we do this)
+  - DL3015  # Avoid additional packages by specifying --no-install-recommends
+  - DL3059  # Multiple consecutive RUN instructions (sometimes necessary)
+  - SC2046  # Quote this to prevent word splitting (shellcheck)
+  - SC2086  # Double quote to prevent globbing and word splitting (shellcheck)
+
+# Trusted registries
+trustedRegistries:
+  - docker.io
+  - gcr.io
+  - ghcr.io
+  - quay.io
+  - registry.hub.docker.com
+  - mcr.microsoft.com
+
+# Override specific rules
+override:
+  error: []
+  warning: 
+    - DL3020  # Use COPY instead of ADD for files and folders
+    - DL4006  # Set the SHELL option -o pipefail before RUN with a pipe
+  info:
+    - DL3007  # Using latest is prone to errors if the image will ever update
+    - DL3021  # COPY with more than 2 arguments requires the last argument to end with /
+  style: []
+
+# Format for output messages
+format: tty
+
+# Disable progress indicator
+noColor: false
+noFail: false
+verbose: false

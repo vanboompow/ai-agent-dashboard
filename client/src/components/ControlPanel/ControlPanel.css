@@ -1,0 +1,164 @@
+.control-panel {
+  padding: 10px 0;
+}
+
+.control-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.control-button {
+  background: transparent;
+  border: 1px solid #00ff00;
+  color: #00ff00;
+  padding: 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.control-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 255, 0, 0.2);
+  transition: left 0.3s;
+}
+
+.control-button:hover::before {
+  left: 0;
+}
+
+.control-button:hover {
+  background: rgba(0, 255, 0, 0.1);
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+}
+
+.control-button:active {
+  transform: scale(0.98);
+}
+
+.run-button:hover {
+  border-color: #00ff00;
+}
+
+.pause-button:hover {
+  border-color: #ffff00;
+  color: #ffff00;
+}
+
+.stop-button:hover {
+  border-color: #ff8800;
+  color: #ff8800;
+}
+
+.emergency-button {
+  grid-column: span 2;
+  border-color: #ff0000;
+  color: #ff0000;
+}
+
+.emergency-button:hover {
+  background: rgba(255, 0, 0, 0.2);
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+}
+
+.throttle-control {
+  margin: 20px 0;
+  padding: 15px;
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  background: rgba(0, 255, 0, 0.02);
+}
+
+.throttle-label {
+  font-size: 12px;
+  margin-bottom: 10px;
+  color: #00ff00;
+  text-transform: uppercase;
+}
+
+.throttle-slider {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 255, 0, 0.2);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 3px;
+}
+
+.throttle-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #00ff00;
+  cursor: pointer;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+}
+
+.throttle-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #00ff00;
+  cursor: pointer;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+}
+
+.throttle-marks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 10px;
+  color: rgba(0, 255, 0, 0.6);
+}
+
+.system-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  background: rgba(0, 255, 0, 0.02);
+  margin-top: 20px;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #888;
+}
+
+.status-indicator.active {
+  background: #00ff00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.system-status span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}

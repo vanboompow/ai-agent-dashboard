@@ -1,0 +1,225 @@
+groups:
+- name: ai_dashboard_alerts
+  rules:
+  
+  # High-level service availability alerts
+  - alert: ServiceDown
+    expr: up == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Service {{ $labels.instance }} is down"
+      description: "Service {{ $labels.instance }} has been down for more than 1 minute."
+
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High error rate detected"
+      description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.endpoint }}"
+
+  - alert: HighLatency
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High request latency"
+      description: "95th percentile latency is {{ $value }}s for {{ $labels.endpoint }}"
+
+  # System resource alerts
+  - alert: HighCPUUsage
+    expr: system_cpu_usage_percent > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage"
+      description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+  - alert: HighMemoryUsage
+    expr: system_memory_usage_percent > 85
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage"
+      description: "Memory usage is {{ $value }}% on {{ $labels.instance }}"
+
+  - alert: HighDiskUsage
+    expr: system_disk_usage_percent > 90
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High disk usage"
+      description: "Disk usage is {{ $value }}% on {{ $labels.instance }}"
+
+  # Database alerts
+  - alert: DatabaseConnectionsHigh
+    expr: db_connections_active > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High database connections"
+      description: "Database has {{ $value }} active connections"
+
+  - alert: SlowDatabaseQueries
+    expr: histogram_quantile(0.95, rate(db_query_duration_seconds_bucket[5m])) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Slow database queries"
+      description: "95th percentile query time is {{ $value }}s"
+
+  # Application-specific alerts
+  - alert: NoActiveAgents
+    expr: sum(agents_total) == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "No active agents"
+      description: "There are no active agents in the system"
+
+  - alert: HighTaskFailureRate
+    expr: rate(celery_tasks_total{status="FAILURE"}[5m]) / rate(celery_tasks_total[5m]) > 0.2
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High task failure rate"
+      description: "Task failure rate is {{ $value | humanizePercentage }}"
+
+  - alert: TaskQueueBacklog
+    expr: sum(tasks_total{status="pending"}) > 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High task queue backlog"
+      description: "There are {{ $value }} pending tasks in the queue"
+
+  - alert: HighAPICosts
+    expr: increase(api_costs_total[1h]) > 10
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High API costs"
+      description: "API costs have increased by ${{ $value }} in the last hour"
+
+  # Redis alerts
+  - alert: RedisHighMemoryUsage
+    expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Redis high memory usage"
+      description: "Redis memory usage is {{ $value | humanizePercentage }}"
+
+  - alert: RedisConnectionFailures
+    expr: rate(redis_operations_total{result="error"}[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Redis connection failures"
+      description: "Redis is experiencing {{ $value }} connection failures per second"
+
+  # Celery worker alerts
+  - alert: CeleryWorkersDown
+    expr: celery_workers_active == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "No active Celery workers"
+      description: "All Celery workers appear to be down"
+
+  - alert: CeleryTaskProcessingDelay
+    expr: histogram_quantile(0.95, rate(celery_task_duration_seconds_bucket[5m])) > 300
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Celery tasks taking too long"
+      description: "95th percentile task processing time is {{ $value }}s"
+
+- name: infrastructure_alerts
+  rules:
+  
+  # Container and orchestration alerts
+  - alert: ContainerHighCPU
+    expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container high CPU usage"
+      description: "Container {{ $labels.name }} CPU usage is {{ $value }}%"
+
+  - alert: ContainerHighMemory
+    expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container high memory usage"
+      description: "Container {{ $labels.name }} memory usage is {{ $value | humanizePercentage }}"
+
+  - alert: ContainerRestarting
+    expr: rate(container_last_seen[5m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container restarting"
+      description: "Container {{ $labels.name }} is restarting frequently"
+
+  # Network alerts
+  - alert: HighNetworkErrors
+    expr: rate(node_network_receive_errs_total[5m]) + rate(node_network_transmit_errs_total[5m]) > 0.01
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High network errors"
+      description: "Network interface {{ $labels.device }} has high error rate"
+
+- name: business_logic_alerts
+  rules:
+  
+  # Business metrics alerts
+  - alert: TokenProcessingRateDecline
+    expr: (rate(tokens_processed_total[5m]) < rate(tokens_processed_total[5m] offset 1h) * 0.5) and rate(tokens_processed_total[5m]) > 0
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Token processing rate declined"
+      description: "Token processing rate has dropped by more than 50% compared to 1 hour ago"
+
+  - alert: AgentUnresponsive
+    expr: time() - max(agent_last_heartbeat) by (agent_id) > 300
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Agent unresponsive"
+      description: "Agent {{ $labels.agent_id }} hasn't sent a heartbeat in over 5 minutes"
+
+  - alert: TaskStuck
+    expr: max(task_processing_duration_seconds) > 3600
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Long running task detected"
+      description: "Task has been running for over 1 hour: {{ $labels.task_type }}"

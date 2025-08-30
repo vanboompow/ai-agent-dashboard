@@ -1,0 +1,22 @@
+{
+  "name": "ai-agent-dashboard",
+  "version": "1.0.0",
+  "description": "AI Agent Monitoring and Orchestration Dashboard",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && uvicorn app.main:app --reload",
+    "build": "cd client && npm run build",
+    "test": "npm run test:client && npm run test:server",
+    "test:client": "cd client && npm test",
+    "test:server": "cd server && pytest"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}

@@ -1,0 +1,307 @@
+/* Chart Container Styles */
+.line-chart-container,
+.cost-chart-container,
+.performance-chart-container {
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px);
+  box-shadow: 
+    0 4px 20px rgba(0, 255, 0, 0.1),
+    inset 0 1px 0 rgba(0, 255, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.line-chart-container:hover,
+.cost-chart-container:hover,
+.performance-chart-container:hover {
+  border-color: rgba(0, 255, 0, 0.5);
+  box-shadow: 
+    0 6px 25px rgba(0, 255, 0, 0.15),
+    inset 0 1px 0 rgba(0, 255, 0, 0.2);
+}
+
+/* Chart Headers */
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+.chart-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  color: #00ff00;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+  text-shadow: 0 0 4px rgba(0, 255, 0, 0.5);
+}
+
+/* Chart Values */
+.chart-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-weight: bold;
+  color: #00ff00;
+  background: rgba(0, 255, 0, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  text-shadow: 0 0 4px rgba(0, 255, 0, 0.5);
+}
+
+/* Cost Summary */
+.cost-summary {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.cost-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.cost-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: rgba(0, 255, 0, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cost-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  color: #00ff00;
+}
+
+.cost-item.projection .cost-label {
+  color: rgba(255, 170, 0, 0.7);
+}
+
+.cost-item.projection .cost-value {
+  color: #ffaa00;
+}
+
+/* Performance Stats */
+.performance-stats {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: rgba(0, 255, 0, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: bold;
+  color: #00ff00;
+}
+
+.stat-item.best .stat-label {
+  color: rgba(0, 255, 136, 0.7);
+}
+
+.stat-item.best .stat-value {
+  color: #00ff88;
+}
+
+.stat-item.worst .stat-label {
+  color: rgba(255, 68, 0, 0.7);
+}
+
+.stat-item.worst .stat-value {
+  color: #ff4400;
+}
+
+/* Chart Wrapper */
+.chart-wrapper {
+  position: relative;
+  height: 200px;
+  width: 100%;
+}
+
+/* Chart Animation */
+.chart-wrapper canvas {
+  transition: all 0.3s ease;
+}
+
+.chart-wrapper:hover canvas {
+  filter: brightness(1.1);
+}
+
+/* Real-time Indicator */
+.chart-header::after {
+  content: '●';
+  color: #00ff00;
+  font-size: 8px;
+  margin-left: auto;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(1.2);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .line-chart-container,
+  .cost-chart-container,
+  .performance-chart-container {
+    padding: 12px;
+    margin-bottom: 15px;
+  }
+  
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .cost-summary,
+  .performance-stats {
+    gap: 8px;
+  }
+  
+  .chart-title {
+    font-size: 12px;
+  }
+  
+  .chart-value {
+    font-size: 14px;
+  }
+  
+  .chart-wrapper {
+    height: 150px;
+  }
+}
+
+/* Loading State */
+.chart-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: rgba(0, 255, 0, 0.6);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.chart-loading::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  border: 2px solid rgba(0, 255, 0, 0.3);
+  border-top: 2px solid #00ff00;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error State */
+.chart-error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: #ff4400;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  text-align: center;
+  background: rgba(255, 68, 0, 0.05);
+  border-radius: 4px;
+}
+
+/* Chart Grid Customization */
+.chart-wrapper .chartjs-render-monitor {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Tooltip Enhancements */
+.chart-wrapper canvas {
+  cursor: crosshair;
+}
+
+/* Data Points Highlight */
+.chart-wrapper:hover {
+  background: radial-gradient(circle at center, rgba(0, 255, 0, 0.02) 0%, transparent 70%);
+}
+
+/* Performance Indicators */
+.performance-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse-indicator 2s ease-in-out infinite;
+}
+
+.performance-indicator.good {
+  background: #00ff00;
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+}
+
+.performance-indicator.warning {
+  background: #ffaa00;
+  box-shadow: 0 0 8px rgba(255, 170, 0, 0.6);
+}
+
+.performance-indicator.critical {
+  background: #ff4400;
+  box-shadow: 0 0 8px rgba(255, 68, 0, 0.6);
+}
+
+@keyframes pulse-indicator {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.3);
+  }
+}

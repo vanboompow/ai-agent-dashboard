@@ -1,0 +1,34 @@
+FROM mcr.microsoft.com/playwright:v1.40.1-focal
+
+WORKDIR /app
+
+# Install Node.js (Playwright image comes with Node.js but let's ensure we have the right version)
+RUN apt-get update && apt-get install -y \
+    curl \
+    wait-for-it \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install wait-on for service readiness
+RUN npm install -g wait-on
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy test configuration and files
+COPY playwright.config.ts ./
+COPY e2e/ ./e2e/
+COPY src/__tests__/ ./src/__tests__/
+COPY tsconfig.json ./
+
+# Install Playwright browsers (already installed in base image, but ensure latest)
+RUN npx playwright install --with-deps
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD npx playwright --version || exit 1
+
+# Default command
+CMD ["npx", "playwright", "test"]
