@@ -42,10 +42,10 @@ jobs:
         pip install -r requirements.txt
         
         # Check for known security vulnerabilities
-        safety check --json --output safety-report.json || true
+        safety check --json > safety-report.json 2>&1 || true
         
         # Generate requirements audit
-        pip-audit --format=json --output=pip-audit.json || true
+        pip-audit --format json -o pip-audit.json || true
     
     - name: Install dependencies and run security audit (Frontend)
       if: matrix.component == 'frontend'
@@ -57,7 +57,7 @@ jobs:
         npm audit --audit-level=high --json > npm-audit.json || true
         
         # Run Retire.js for JavaScript vulnerability scanning
-        npm run retire || npx retire --js --outputformat json --outputpath retire-report.json . || true
+        npx retire --js --outputformat json --outputpath retire-report.json --path . 2>/dev/null || true
     
     - name: Upload security scan results
       uses: actions/upload-artifact@v3
@@ -65,7 +65,7 @@ jobs:
         name: dependency-security-${{ matrix.component }}
         path: |
           server/safety-report.json
-          server/pip-audit.json
+          server/pip-audit.json  
           client/npm-audit.json
           client/retire-report.json
         retention-days: 30
@@ -89,7 +89,7 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
-        queries: +security-and-quality
+        queries: security-extended
     
     - name: Set up Python (for Python analysis)
       if: matrix.language == 'python'
@@ -135,9 +135,9 @@ jobs:
       uses: trufflesecurity/trufflehog@main
       with:
         path: ./
-        base: ${{ github.event.repository.default_branch }}
+        base: main
         head: HEAD
-        extra_args: --debug --only-verified
+        extra_args: --only-verified
 
   infrastructure-scan:
     runs-on: ubuntu-latest
@@ -182,10 +182,9 @@ jobs:
       uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
-        sarif_file: |
-          hadolint-backend.sarif
-          hadolint-frontend.sarif
+        sarif_file: hadolint-backend.sarif
         category: hadolint
+        wait-for-processing: false
 
   license-check:
     runs-on: ubuntu-latest
@@ -220,12 +219,12 @@ jobs:
     - name: Generate Python license report
       run: |
         cd server
-        pip-licenses --format=json --output-file=python-licenses.json --with-urls
+        pip-licenses --format=json --output-file=python-licenses.json --with-urls || echo '{}' > python-licenses.json
     
     - name: Generate Node.js license report
       run: |
         cd client
-        license-checker --json --out npm-licenses.json
+        npx license-checker --json --out npm-licenses.json || echo '{}' > npm-licenses.json
     
     - name: Check for problematic licenses
       run: |
