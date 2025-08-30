@@ -39,7 +39,6 @@ jobs:
       run: |
         cd server
         python -m pip install --upgrade pip
-        pip install safety
         pip install -r requirements.txt
         
         # Check for known security vulnerabilities
@@ -58,7 +57,7 @@ jobs:
         npm audit --audit-level=high --json > npm-audit.json || true
         
         # Run Retire.js for JavaScript vulnerability scanning
-        npx retire --js --outputformat json --outputpath retire-report.json . || true
+        npm run retire || npx retire --js --outputformat json --outputpath retire-report.json . || true
     
     - name: Upload security scan results
       uses: actions/upload-artifact@v3
@@ -210,7 +209,6 @@ jobs:
       run: |
         cd server
         python -m pip install --upgrade pip
-        pip install pip-licenses
         pip install -r requirements.txt
     
     - name: Install Node.js dependencies
